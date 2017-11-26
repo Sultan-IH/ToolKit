@@ -1,0 +1,2 @@
+client = "999b138596234a7cb411e068337263c2"
+secret = "5fd0c381f3064b05aafc3e2699df8da9"
