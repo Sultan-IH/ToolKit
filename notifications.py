@@ -1,8 +1,9 @@
 import os
 
 
-def notify(tool, message, command=None, icon="./Icons/tools.png"):
-    path_to_icon = os.path.abspath(icon)
+def notify(tool, message, command=None, icon="tools.png"):
+    path_to_icon = "~/Projects/Toolkit/Icons/" + icon
+    print(path_to_icon)
     t = '-title ToolKit'
     s = f'-subtitle {tool}'
     m = f'-message "{message}"'

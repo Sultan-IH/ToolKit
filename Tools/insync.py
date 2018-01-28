@@ -10,15 +10,10 @@ back_up_drive = "FloppyDisk"
 backed_up = False
 
 
-def backup():
-    call('rsync -aE --delete ~/Documents/ "/Volumes/' + back_up_drive + '/BackUps/Documents/"', shell=True)
-    call('rsync -aE --delete ~/Pictures/ "/Volumes/' + back_up_drive + '/BackUps/Pictures/"', shell=True)
-    call('rsync -aE --delete ~/Desktop/ "/Volumes/' + back_up_drive + '/BackUps/Desktop/"', shell=True)
-
-
 class InSync:
     tool = "InSync"
-    icon = "./Icons/insync.png"
+    icon = "insync.png"
+    back_up_folders = ['Documents', 'Pictures', 'Desktop', 'Projects']
     on_finish_command = "diskutil unmount " + back_up_drive
 
     def main(self):
@@ -27,7 +22,7 @@ class InSync:
             if os.path.isdir("/Volumes/" + back_up_drive):
 
                 self.notify("Backing up to: " + back_up_drive, command=None)
-                backup()
+                self.backup()
                 self.notify("Backed up to: " + back_up_drive + "; Click to unmount", self.on_finish_command)
 
                 while os.path.isdir("/Volumes/" + back_up_drive):
@@ -37,3 +32,12 @@ class InSync:
 
     def notify(self, message, command):
         notify(self.tool, message, command, icon=self.icon)
+
+    def backup(self):
+
+        for folder in self.back_up_folders:
+            path = "/Volumes/" + back_up_drive + "/BackUps/" + folder + "/"
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            call('rsync -aE --delete ~/' + folder + '/ ' + path,
+                 shell=True)
