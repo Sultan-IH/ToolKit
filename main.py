@@ -1,18 +1,17 @@
 from threading import Thread
-from Tools import insync, spotify
+from Tools import InSync, Spotify
 import time
 from notifications import notify
 
 # TODO: include server backup
 
-# TODO: include encryption
 
 tools = [
-    insync.InSync(),
-    spotify.Spotify()
+    InSync(),
+    Spotify()
 ]
 
-print('Starting main loop')
+print('================= Starting main loop =================')
 notify('Main', 'ToolKit is up and Running')
 time.sleep(1)
 for tool in tools:

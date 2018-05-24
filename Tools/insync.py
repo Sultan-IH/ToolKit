@@ -1,43 +1,79 @@
-import os, time
-from subprocess import call
+import os, time, yaml
+from typing import Tuple
+from subprocess import PIPE, Popen
 from notifications import notify
+from datetime import datetime as dt
 
-# TODO: include special treatment for some files depending on metadata
 # TODO: check if backup dir exists
-# TODO: enable auth using big numbers
 # TODO: absolute paths to icons
-back_up_drive = "FloppyDisk"
-backed_up = False
+timef = '%b %d %H:%M'
 
 
 class InSync:
+    sha256_hash = '806b5820ac0acde3ec5154d829f08c4c4fce77a5d30b666e220e1a0e9b7feb57'
     tool = "InSync"
     icon = "insync.png"
     back_up_folders = ['Documents', 'Pictures', 'Desktop', 'Projects']
-    on_finish_command = "diskutil unmount " + back_up_drive
+    on_finish_command = "diskutil unmount "
 
     def main(self):
-        print("InSync started")
-        while True:
-            if os.path.isdir("/Volumes/" + back_up_drive):
 
-                self.notify("Backing up to: " + back_up_drive, command=None)
-                self.backup()
-                self.notify("Backed up to: " + back_up_drive + "; Click to unmount", self.on_finish_command)
+        for disk_name in disk_stream():
+            path_to_disk = '/Volumes/' + disk_name
+            files = os.listdir(path_to_disk)
 
-                while os.path.isdir("/Volumes/" + back_up_drive):
-                    print("not backing up")
-                    time.sleep(10)
-            time.sleep(5)
+            if '.insync.yaml' in files and self.auth(path_to_disk):
+                self.notify("Backing up to: " + disk_name, command=None)
+                self.backup(path_to_disk)
+                print("Finished backing up to : ", disk_name)
+                self.notify("Backed up to: " + disk_name + "; Click to unmount", self.on_finish_command + disk_name)
 
     def notify(self, message, command):
         notify(self.tool, message, command, icon=self.icon)
 
-    def backup(self):
-
+    def backup(self, path_to_disk: str):
         for folder in self.back_up_folders:
-            path = "/Volumes/" + back_up_drive + "/BackUps/" + folder + "/"
+            path = path_to_disk + "/BackUps/" + folder + "/"
             if not os.path.isdir(path):
                 os.makedirs(path)
-            call('rsync -aE --delete ~/' + folder + '/ ' + path,
-                 shell=True)
+            Popen('rsync -aE --delete ~/' + folder + '/ ' + path,
+                  shell=True)
+
+    def auth(self, path: str) -> bool:
+        with open(path + '/.insync.yaml') as file:
+            config = yaml.load(file)
+        if config['auth'] == self.sha256_hash:
+            return True
+        return False
+
+
+def disk_stream(previous: dict = {}):
+    # is a generator that streams changes to the volumes folder
+    current = get_disk_metadata()
+    if current != previous:  # checks if any changes have been made
+        for disk_name in current.keys():
+            # new disk mounted or old disk remounted
+            if disk_name not in previous.keys() or current[disk_name] != previous[disk_name]:
+                previous[disk_name] = current[disk_name]
+                yield disk_name
+                yield from disk_stream(previous)
+
+    time.sleep(5)
+    yield from disk_stream(current)
+
+
+def get_disk_metadata():
+    process = Popen("ls -ltr /Volumes | awk '{print $6, $7, $8, $9}'", shell=True, stdout=PIPE)
+    out, _ = process.communicate()
+    out = out.decode('utf-8').split('\n')
+    del out[0], out[-1]
+    fout = [nsplit(disk, 3, ' ') for disk in out]
+    # creating a dictionary {disk_name : (date_mounted, is_backed_up) }
+    disk_metadata = {disk[1]: dt.strptime(disk[0], timef) for disk in fout}
+    return disk_metadata
+
+
+def nsplit(s: str, n: int, c: str) -> Tuple[str, str]:
+    # split string s on the nth occurrence of character c
+    groups = s.split(c)
+    return c.join(groups[:n]), c.join(groups[n:])
