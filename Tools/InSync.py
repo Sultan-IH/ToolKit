@@ -1,24 +1,27 @@
 import os, time, yaml
 from typing import Tuple
-from subprocess import PIPE, Popen
+from subprocess import PIPE, Popen, call
 from notifications import notify
 from datetime import datetime as dt
 
 # TODO: check if backup dir exists
 # TODO: absolute paths to icons
-timef = '%b %d %H:%M'
+timef = '%d %b %H:%M'
 
 
 class InSync:
-    sha256_hash = '806b5820ac0acde3ec5154d829f08c4c4fce77a5d30b666e220e1a0e9b7feb57'
+    sha256_hash = os.getenv('TOOLKIT_HASH256')
     tool = "InSync"
     icon = "insync.png"
     back_up_folders = ['Documents', 'Pictures', 'Desktop', 'Projects']
     on_finish_command = "diskutil unmount "
 
-    def main(self):
+    def __init__(self):
+        print("InSync tool started")
 
+    def main(self):
         for disk_name in disk_stream():
+            print("Disk Stream: ", disk_name)
             path_to_disk = '/Volumes/' + disk_name
             files = os.listdir(path_to_disk)
 
@@ -36,8 +39,9 @@ class InSync:
             path = path_to_disk + "/BackUps/" + folder + "/"
             if not os.path.isdir(path):
                 os.makedirs(path)
-            Popen('rsync -aE --delete ~/' + folder + '/ ' + path,
-                  shell=True)
+            call('rsync -aE --delete ~/' + folder + '/ ' + path,
+                 shell=True)
+            print("Finished backing up", folder)
 
     def auth(self, path: str) -> bool:
         with open(path + '/.insync.yaml') as file:
@@ -58,11 +62,11 @@ def disk_stream(previous: dict = {}):
                 yield disk_name
                 yield from disk_stream(previous)
 
-    time.sleep(5)
+    time.sleep(3)
     yield from disk_stream(current)
 
 
-def get_disk_metadata():
+def get_disk_metadata() -> dict:
     process = Popen("ls -ltr /Volumes | awk '{print $6, $7, $8, $9}'", shell=True, stdout=PIPE)
     out, _ = process.communicate()
     out = out.decode('utf-8').split('\n')

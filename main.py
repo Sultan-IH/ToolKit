@@ -1,5 +1,5 @@
 from threading import Thread
-from Tools import InSync, Spotify
+from Tools import InSync, Spotify, Cellarium
 import time
 from notifications import notify
 
@@ -7,8 +7,9 @@ from notifications import notify
 
 
 tools = [
-    InSync(),
-    Spotify()
+    #InSync(),
+    #Spotify(),
+    Cellarium()
 ]
 
 print('================= Starting main loop =================')

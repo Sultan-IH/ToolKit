@@ -1,2 +1,3 @@
-from Tools.insync import InSync
+from Tools.InSync import InSync
 from Tools.spotify import Spotify
+from Tools.Cellarium import Cellarium
